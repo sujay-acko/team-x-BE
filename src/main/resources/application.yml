@@ -1,0 +1,6 @@
+secrets.path.file: secrets.json
+
+logging:
+  config: classpath:log4j2-dev.xml
+  level:
+    com.acko: DEBUG

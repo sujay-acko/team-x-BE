@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Configuration status="WARN">
+
+    <Appenders>
+        <Console name="Console" target="SYSTEM_OUT">
+            <PatternLayout
+                    pattern="%highlight{[%-5level] %d{yyyy-MM-dd HH:mm:ss.SSS} - correlationId: %X{correlationId} [%t] %c{2} - [message=%msg] [thread_id=%tid]}{FATAL=red blink, ERROR=red, WARN=yellow bold, INFO=GREEN, DEBUG=green bold, TRACE=blue} %n"
+            />
+        </Console>
+    </Appenders>
+
+    <Loggers>
+        <Root level="INFO">
+            <AppenderRef ref="Console" level="DEBUG"/>
+            <!--            <AppenderRef ref="RollingFile" level="DEBUG"/>-->
+        </Root>
+    </Loggers>
+
+</Configuration>
