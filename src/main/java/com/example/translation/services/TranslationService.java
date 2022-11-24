@@ -38,6 +38,7 @@ public class TranslationService {
 
     public GetTranslationResponse getTranslation(GetTranslationRequest request) throws Exception {
 
+        log.info("Language Translation Started {} ###################", request.getHtmlTextData());
         HtmlTextEncodedResponse htmlTextEncodedResponse = getFilteredSentence(request.getHtmlTextData());
 
         Map<String, Integer> sequenceMap = new HashMap<>();
@@ -98,6 +99,7 @@ public class TranslationService {
                 .fromThirdParty(Boolean.FALSE)
                 .build();
 
+        log.info("Language Translation Done {} ", getTranslationResponse.getTextData());
         return getTranslationResponse;
     }
     public HtmlTextEncodedResponse getFilteredSentence(String text) throws Exception {
