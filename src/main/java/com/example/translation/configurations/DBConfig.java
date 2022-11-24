@@ -2,6 +2,8 @@ package com.example.translation.configurations;
 
 import com.example.translation.constants.Constants;
 import com.example.translation.secrets.ISecretManager;
+import com.google.cloud.translate.Translate;
+import com.google.cloud.translate.TranslateOptions;
 import lombok.AllArgsConstructor;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.jdbc.DataSourceBuilder;
@@ -25,4 +27,13 @@ public class DBConfig {
                 .password(secretManager.getDBCredentials(Constants.DB_NAME).getPassword())
                 .build();
     }
+
+    @Bean
+    public Translate getTranslate() {
+        return TranslateOptions.newBuilder()
+                .setApiKey("")
+                .build()
+                .getService();
+    }
+
 }
