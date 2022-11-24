@@ -31,6 +31,13 @@ public class TranslationService {
         Map<String, String> translationMap = translationTextList.stream()
                 .collect(Collectors.toMap(CommonUtils::getMd5, s -> s));
 
+        List<TextWithHash> translationRevObj = translationTextList.stream()
+                .map(t -> TextWithHash.builder()
+                        .text(t)
+                        .hash(CommonUtils.getMd5(t))
+                        .build())
+                .collect(Collectors.toList());
+
         List<String> translationHex = new ArrayList<>(translationMap.keySet());
         List<Translations> translatedSentence =
                 translationsRepository.findByTextIdInAndLanguageCode(translationHex, request.getTargetLang());
@@ -38,21 +45,40 @@ public class TranslationService {
         List<String> translationAvailableHex = translatedSentence.stream().map(Translations::getTextId).collect(Collectors.toList());
 
         // unmatched strings
-        List<String> unmatchedString = translationHex.stream()
+        List<TextWithHash> unmatchedString = translationHex.stream()
                 .filter(t -> !translationAvailableHex.contains(t))
-                .map(translationMap::get)
+                .map(t -> TextWithHash.builder().text(translationMap.get(t)).hash(t).build())
                 .collect(Collectors.toList());
 
-        List<String> translatedList = createTranslation(unmatchedString, request.getTargetLang());
+        if (unmatchedString.isEmpty()) {
+            // sentence found in db
+           return null;
+        }
 
+        List<TextWithHash> translatedList = createTranslation(unmatchedString, request.getTargetLang());
 
+        List<Translations> translationsList = translatedList.stream()
+                .map(t -> Translations.builder()
+                        .textId(t.getHash())
+                        .languageCode(request.getTargetLang())
+                        .translation(t.getText())
+                        .build()
+                )
+                .collect(Collectors.toList());
+        translationsRepository.saveAll(translationsList);
+        return null;
     }
 
     public List<String> getFilteredSentence(String text) {
-        return List.of("This is an house", "Hello world", "How can I do insurance claim", "I am playing football", "Health insurance");
+        return List.of("This is an house", "Hello world",
+                "How can I do insurance claim", "I am playing football", "Health insurance",
+                "acko insurance"
+        );
     }
 
-    public List<String> createTranslation(List<String> unmatchedString, String targetLang) {
+    public List<TextWithHash> createTranslation(List<TextWithHash> unmatchedObj, String targetLang) {
+
+        List<String> unmatchedString = unmatchedObj.stream().map(TextWithHash::getText).collect(Collectors.toList());
 
         List<Translation> translation = translate.translate(
                 unmatchedString,
@@ -60,12 +86,16 @@ public class TranslationService {
                 Translate.TranslateOption.targetLanguage(targetLang));
         log.info(translation);
 
-        List<String> translatedList = translation.stream()
-                .map(Translation::getTranslatedText)
-                .collect(Collectors.toList());
+        List<TextWithHash> result = new ArrayList<>();
 
-        return translatedList;
+        for (int i = 0; i < unmatchedObj.size(); i++) {
+            result.add(
+                    TextWithHash.builder()
+                            .hash(unmatchedObj.get(i).getHash())
+                            .text(translation.get(i).getTranslatedText())
+                            .build()
+            );
+        }
+        return result;
     }
-
-//    public
 }
