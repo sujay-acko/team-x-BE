@@ -1,6 +1,6 @@
 package com.example.translation.controllers;
 
-import com.example.translation.constants.Constants;
+import com.example.translation.constants.URLConstants;
 import com.example.translation.dtos.request.GetTranslationRequest;
 import com.example.translation.dtos.response.GetTranslationResponse;
 import com.example.translation.models.TranslationDetails;
@@ -13,17 +13,17 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
-@RequestMapping(Constants.Url.API_V1)
+@RequestMapping(URLConstants.Url.API_V1)
 @RequiredArgsConstructor
 public class TranslationController {
 
     private final TranslationService translationService;
     @PostMapping(
-            path = Constants.Url.TRANSLATION_ENDPOINT,
+            path = URLConstants.Url.TRANSLATION_ENDPOINT,
             consumes = MediaType.APPLICATION_JSON_VALUE,
             produces = MediaType.APPLICATION_JSON_VALUE
     )
-    public ResponseEntity<GetTranslationResponse> getOpportunity(@RequestBody GetTranslationRequest requestDto) {
+    public ResponseEntity<GetTranslationResponse> getOpportunity(@RequestBody GetTranslationRequest requestDto) throws Exception {
         return ResponseEntity.ok(translationService.getTranslation(requestDto));
     }
 
