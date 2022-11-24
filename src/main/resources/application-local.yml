@@ -7,7 +7,7 @@ logging:
 spring:
   datasource:
     platform: postgres
-    jdbc-url: jdbc:postgresql://localhost:5432/opportunity
+    jdbc-url: jdbc:postgresql://localhost:5432/translation_db
 
   jpa:
     database: POSTGRESQL

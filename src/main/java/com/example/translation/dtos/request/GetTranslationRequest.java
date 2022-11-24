@@ -8,4 +8,5 @@ import lombok.Data;
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
 public class GetTranslationRequest {
     private String textData;
+    private String targetLang;
 }
