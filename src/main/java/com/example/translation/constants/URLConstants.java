@@ -1,6 +1,6 @@
 package com.example.translation.constants;
 
-public class Constants {
+public class URLConstants {
     public static final String DB_NAME = "translation_db";
 
     public static class Url {
