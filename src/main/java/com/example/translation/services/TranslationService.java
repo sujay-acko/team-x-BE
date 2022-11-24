@@ -1,10 +1,16 @@
 package com.example.translation.services;
 
+import com.example.translation.constants.Regexes;
+import com.example.translation.constants.Tags;
 import com.example.translation.dtos.request.GetTranslationRequest;
+import com.example.translation.dtos.response.HtmlTextEncodedResponse;
+import com.example.translation.models.DecodeTextResponse;
 import com.example.translation.dtos.response.GetTranslationResponse;
 import com.example.translation.models.Translations;
 import com.example.translation.pojo.TextWithHash;
 import com.example.translation.repositories.TranslationsRepository;
+import com.example.translation.services.decode.DecodeTagService;
+import com.example.translation.services.decode.DecodeTagServiceImpl;
 import com.example.translation.utils.CommonUtils;
 import com.google.cloud.translate.Translate;
 import com.google.cloud.translate.Translation;
@@ -13,9 +19,14 @@ import lombok.extern.log4j.Log4j2;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 @Component
 @RequiredArgsConstructor
@@ -25,18 +36,20 @@ public class TranslationService {
     private final TranslationsRepository translationsRepository;
     private final Translate translate;
 
-    public GetTranslationResponse getTranslation(GetTranslationRequest request) {
+    public GetTranslationResponse getTranslation(GetTranslationRequest request) throws Exception {
 
-        List<String> translationTextList = getFilteredSentence(request.getTextData());
-        Map<String, String> translationMap = translationTextList.stream()
-                .collect(Collectors.toMap(CommonUtils::getMd5, s -> s));
+        HtmlTextEncodedResponse htmlTextEncodedResponse = getFilteredSentence(request.getHtmlTextData());
 
-        List<TextWithHash> translationRevObj = translationTextList.stream()
-                .map(t -> TextWithHash.builder()
-                        .text(t)
-                        .hash(CommonUtils.getMd5(t))
-                        .build())
-                .collect(Collectors.toList());
+        Map<String, Integer> sequenceMap = new HashMap<>();
+        Map<String,List<String>> paramValueMap = new HashMap<>();
+        Map<String, String> translationMap = new HashMap<>();
+        int index = 0;
+        for (DecodeTextResponse decodeTextResponse: htmlTextEncodedResponse.getDecodeTextResponseList()) {
+            String hexCode = CommonUtils.getMd5(decodeTextResponse.getText());
+            sequenceMap.put(hexCode, index++);
+            translationMap.put(hexCode, decodeTextResponse.getText());
+            paramValueMap.put(hexCode, decodeTextResponse.getParamValues());
+        }
 
         List<String> translationHex = new ArrayList<>(translationMap.keySet());
         List<Translations> translatedSentence =
@@ -50,31 +63,101 @@ public class TranslationService {
                 .map(t -> TextWithHash.builder().text(translationMap.get(t)).hash(t).build())
                 .collect(Collectors.toList());
 
-        if (unmatchedString.isEmpty()) {
+        List<Translations> translationsList = new ArrayList<>();
+        if (!unmatchedString.isEmpty()) {
             // sentence found in db
-            log.info("------ENDED-------");
-            return null;
+            List<TextWithHash> translatedList = createTranslation(unmatchedString, request.getTargetLang());
+
+            translationsList = translatedList.stream()
+                    .map(t -> Translations.builder()
+                            .textId(t.getHash())
+                            .languageCode(request.getTargetLang())
+                            .translation(t.getText())
+                            .build()
+                    )
+                    .collect(Collectors.toList());
+            translationsRepository.saveAll(translationsList);
         }
-
-        List<TextWithHash> translatedList = createTranslation(unmatchedString, request.getTargetLang());
-
-        List<Translations> translationsList = translatedList.stream()
-                .map(t -> Translations.builder()
-                        .textId(t.getHash())
-                        .languageCode(request.getTargetLang())
-                        .translation(t.getText())
-                        .build()
-                )
+        List<Translations> finalTranslatedString = Stream.concat(translationsList.stream(), translatedSentence.stream())
                 .collect(Collectors.toList());
-        translationsRepository.saveAll(translationsList);
-        return null;
+
+        String[] translatedEncodedString = new String[finalTranslatedString.size()];
+        List<String>[] paramList = new ArrayList[finalTranslatedString.size()];
+        finalTranslatedString.forEach(t -> {
+            translatedEncodedString[sequenceMap.get(t.getTextId())] = t.getTranslation();
+            paramList[sequenceMap.get(t.getTextId())] =  paramValueMap.get(t.getTextId());
+        });
+
+        List<String> translatedString = getSubstitutedTranslationList(Arrays.asList(translatedEncodedString), Arrays.asList(paramList));
+
+        String encodedHtmlResponse = htmlTextEncodedResponse.getEncodedHtmlResponse();
+        String finalHtmlResponsePage = getFinalHtmlResponsePage(translatedString,encodedHtmlResponse);
+        GetTranslationResponse getTranslationResponse = GetTranslationResponse.builder()
+                .textData(finalHtmlResponsePage)
+                .targetLang(request.getTargetLang())
+                .fromThirdParty(Boolean.FALSE)
+                .build();
+
+        return getTranslationResponse;
+    }
+    public HtmlTextEncodedResponse getFilteredSentence(String text) throws Exception {
+
+        Matcher matcher = Pattern.compile(Regexes.HTML_PARSER_REGEX, Pattern.CASE_INSENSITIVE).matcher(text);
+
+        StringBuffer stringBuffer = new StringBuffer();
+        List<String> encodedTranslationTextList = new ArrayList<>();
+        while (matcher.find()) {
+            encodedTranslationTextList.add(matcher.group(0));
+            matcher.appendReplacement(stringBuffer, Tags.HTML_PARSER_TAG);
+        }
+        matcher.appendTail(stringBuffer);
+
+        List<DecodeTextResponse> decodedTranslationTextList = new ArrayList<>();
+        DecodeTagService decodeTagService = new DecodeTagServiceImpl();
+        for (String encodedText: encodedTranslationTextList){
+            decodedTranslationTextList.add(decodeTagService.getTagDecodedText(encodedText));
+        }
+        HtmlTextEncodedResponse htmlTextEncodedResponse = HtmlTextEncodedResponse.builder()
+                .encodedHtmlResponse(stringBuffer.toString())
+                .decodeTextResponseList(decodedTranslationTextList)
+                .build();
+        return htmlTextEncodedResponse;
     }
 
-    public List<String> getFilteredSentence(String text) {
-        return List.of("This is an house", "Hello world",
-                "How can I do insurance claim", "I am playing football", "Health insurance",
-                "acko insurance"
-        );
+    public List<String> getSubstitutedTranslationList(List<String> translatedEncodedStringList, List<List<String>> paramValuesList ){
+        List<String> translatedString = new ArrayList<>();
+        Pattern pattern = Pattern.compile(Tags.DECODE_PARAM_TAG, Pattern.CASE_INSENSITIVE);
+
+        int paramListCounter = 0;
+        for (String translatedEncodedString: translatedEncodedStringList) {
+            Matcher matcher = pattern.matcher(translatedEncodedString);
+
+            StringBuffer stringBuffer = new StringBuffer();
+            int paramValuesListCounter=0;
+            while (matcher.find()) {
+                matcher.appendReplacement(stringBuffer, paramValuesList.get(paramListCounter).get(paramValuesListCounter));
+                paramValuesListCounter++;
+            }
+            matcher.appendTail(stringBuffer);
+            translatedString.add(stringBuffer.toString());
+            paramListCounter++;
+        }
+        return translatedString;
+    }
+
+    public String getFinalHtmlResponsePage(List<String> translatedTextResponseList, String encodedHtmlResponse ){
+
+        Matcher matcher = Pattern.compile(Tags.HTML_PARSER_TAG, Pattern.CASE_INSENSITIVE).matcher(encodedHtmlResponse);
+
+        StringBuffer stringBuffer = new StringBuffer();
+        int count=0;
+        while (matcher.find()) {
+            matcher.appendReplacement(stringBuffer, translatedTextResponseList.get(count));
+            count++;
+        }
+        matcher.appendTail(stringBuffer);
+
+        return stringBuffer.toString();
     }
 
     public List<TextWithHash> createTranslation(List<TextWithHash> unmatchedObj, String targetLang) {

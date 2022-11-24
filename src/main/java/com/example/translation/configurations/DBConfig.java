@@ -1,6 +1,6 @@
 package com.example.translation.configurations;
 
-import com.example.translation.constants.Constants;
+import com.example.translation.constants.URLConstants;
 import com.example.translation.secrets.ISecretManager;
 import com.google.cloud.translate.Translate;
 import com.google.cloud.translate.TranslateOptions;
@@ -23,8 +23,8 @@ public class DBConfig {
     @Primary
     public DataSource getDataSource() {
         return DataSourceBuilder.create()
-                .username(secretManager.getDBCredentials(Constants.DB_NAME).getUsername())
-                .password(secretManager.getDBCredentials(Constants.DB_NAME).getPassword())
+                .username(secretManager.getDBCredentials(URLConstants.DB_NAME).getUsername())
+                .password(secretManager.getDBCredentials(URLConstants.DB_NAME).getPassword())
                 .build();
     }
 
