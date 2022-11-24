@@ -45,4 +45,7 @@ public class Translations {
 
     @Column(name = "original_text", nullable = false)
     private String originalText;
+
+    @Column(name = "admin_status", nullable = false)
+    private String adminStatus;
 }
