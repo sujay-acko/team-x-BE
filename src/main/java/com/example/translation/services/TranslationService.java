@@ -39,26 +39,17 @@ public class TranslationService {
     public GetTranslationResponse getTranslation(GetTranslationRequest request) throws Exception {
 
         HtmlTextEncodedResponse htmlTextEncodedResponse = getFilteredSentence(request.getHtmlTextData());
-        List<String> translationTextList = new ArrayList<>();
-        List<List<String>> paramValuesList = new ArrayList<>();
 
         Map<String, Integer> sequenceMap = new HashMap<>();
         Map<String,List<String>> paramValueMap = new HashMap<>();
+        Map<String, String> translationMap = new HashMap<>();
         int index = 0;
         for (DecodeTextResponse decodeTextResponse: htmlTextEncodedResponse.getDecodeTextResponseList()) {
-            translationTextList.add(decodeTextResponse.getText());
-            paramValuesList.add(decodeTextResponse.getParamValues());
-            sequenceMap.put(CommonUtils.getMd5(decodeTextResponse.getText()), index++);
-            paramValueMap.put(CommonUtils.getMd5(decodeTextResponse.getText()), decodeTextResponse.getParamValues());
+            String hexCode = CommonUtils.getMd5(decodeTextResponse.getText());
+            sequenceMap.put(hexCode, index++);
+            translationMap.put(hexCode, decodeTextResponse.getText());
+            paramValueMap.put(hexCode, decodeTextResponse.getParamValues());
         }
-//
-//        for (int i=0; i<translationTextList.size(); i++){
-//            paramValueMap.put(CommonUtils.getMd5(translationTextList.get(i)),paramValuesList.get(i));
-//        }
-
-        // -------------------------------------------------------
-        Map<String, String> translationMap = translationTextList.stream()
-                .collect(Collectors.toMap(CommonUtils::getMd5, s -> s));
 
         List<String> translationHex = new ArrayList<>(translationMap.keySet());
         List<Translations> translatedSentence =
