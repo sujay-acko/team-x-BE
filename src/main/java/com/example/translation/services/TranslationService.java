@@ -53,6 +53,18 @@ public class TranslationService {
         }
 
         List<String> translationHex = new ArrayList<>(translationMap.keySet());
+
+        if (translationHex.isEmpty()) {
+            log.info("no translation");
+            return GetTranslationResponse.builder()
+                    .textData(request.getHtmlTextData())
+                    .targetLang(request.getTargetLang())
+                    .fromThirdParty(Boolean.FALSE)
+                    .build();
+        }
+        System.out.println(translationHex);
+        System.out.println(request);
+
         List<Translations> translatedSentence =
                 translationsRepository.findByTextIdInAndLanguageCode(translationHex, request.getTargetLang());
 
@@ -74,6 +86,7 @@ public class TranslationService {
                             .textId(t.getHash())
                             .languageCode(request.getTargetLang())
                             .translation(t.getText())
+                            .originalText(translationMap.get(t.getHash()))
                             .build()
                     )
                     .collect(Collectors.toList());
