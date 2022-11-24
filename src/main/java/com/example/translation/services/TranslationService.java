@@ -2,8 +2,11 @@ package com.example.translation.services;
 
 import com.example.translation.dtos.request.GetTranslationRequest;
 import com.example.translation.dtos.response.GetTranslationResponse;
+import com.example.translation.enums.AdminStatus;
+import com.example.translation.models.TranslationDetails;
 import com.example.translation.models.Translations;
 import com.example.translation.pojo.TextWithHash;
+import com.example.translation.repositories.TranslationsDetailsRepository;
 import com.example.translation.repositories.TranslationsRepository;
 import com.example.translation.utils.CommonUtils;
 import com.google.cloud.translate.Translate;
@@ -23,6 +26,7 @@ import java.util.stream.Collectors;
 public class TranslationService {
 
     private final TranslationsRepository translationsRepository;
+    private final TranslationsDetailsRepository translationsDetailsRepository;
     private final Translate translate;
 
     public GetTranslationResponse getTranslation(GetTranslationRequest request) {
@@ -98,5 +102,12 @@ public class TranslationService {
             );
         }
         return result;
+    }
+
+    public List<TranslationDetails> getAllTranslations(Boolean pendingApproval){
+        if (!pendingApproval){
+            return translationsDetailsRepository.findByAdminStatus(AdminStatus.PENDING);
+        }
+        return translationsDetailsRepository.findAll();
     }
 }
