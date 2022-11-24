@@ -52,7 +52,8 @@ public class TranslationService {
 
         if (unmatchedString.isEmpty()) {
             // sentence found in db
-           return null;
+            log.info("------ENDED-------");
+            return null;
         }
 
         List<TextWithHash> translatedList = createTranslation(unmatchedString, request.getTargetLang());

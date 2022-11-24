@@ -7,6 +7,7 @@ import com.example.translation.services.TranslationService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -18,13 +19,11 @@ import org.springframework.web.bind.annotation.RestController;
 public class TranslationController {
 
     private final TranslationService translationService;
-
     @PostMapping(
             path = Constants.Url.TRANSLATION_ENDPOINT,
             consumes = MediaType.APPLICATION_JSON_VALUE,
             produces = MediaType.APPLICATION_JSON_VALUE
     )
-
     public ResponseEntity<GetTranslationResponse> getOpportunity(@RequestBody GetTranslationRequest requestDto) {
         return ResponseEntity.ok(translationService.getTranslation(requestDto));
     }
