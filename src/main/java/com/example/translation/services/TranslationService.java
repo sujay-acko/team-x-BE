@@ -19,6 +19,7 @@ import lombok.extern.log4j.Log4j2;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -89,18 +90,14 @@ public class TranslationService {
         List<Translations> finalTranslatedString = Stream.concat(translationsList.stream(), translatedSentence.stream())
                 .collect(Collectors.toList());
 
-        List<String> translatedEncodedString = new ArrayList<>(finalTranslatedString.size());
-        List<List<String>> paramList = new ArrayList<>(finalTranslatedString.size());
-        for(int i=0 ;i< finalTranslatedString.size(); i++) {
-            translatedEncodedString.add(null);
-            paramList.add(null);
-        }
+        String[] translatedEncodedString = new String[finalTranslatedString.size()];
+        List<String>[] paramList = new ArrayList[finalTranslatedString.size()];
         finalTranslatedString.forEach(t -> {
-            translatedEncodedString.add(sequenceMap.get(t.getTextId()), t.getTranslation());
-            paramList.add(sequenceMap.get(t.getTextId()), paramValueMap.get(t.getTextId()));
+            translatedEncodedString[sequenceMap.get(t.getTextId())] = t.getTranslation();
+            paramList[sequenceMap.get(t.getTextId())] =  paramValueMap.get(t.getTextId());
         });
 
-        List<String> translatedString = getSubstitutedTranslationList(translatedEncodedString, paramList);
+        List<String> translatedString = getSubstitutedTranslationList(Arrays.asList(translatedEncodedString), Arrays.asList(paramList));
 
         String encodedHtmlResponse = htmlTextEncodedResponse.getEncodedHtmlResponse();
         String finalHtmlResponsePage = getFinalHtmlResponsePage(translatedString,encodedHtmlResponse);
