@@ -1,6 +1,6 @@
 package com.example.translation.services.decode;
 
-import com.example.translation.dtos.response.DecodeTextResponse;
+import com.example.translation.models.DecodeTextResponse;
 
 
 public interface DecodeTagService {

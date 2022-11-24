@@ -2,7 +2,7 @@ package com.example.translation.services.decode;
 
 import com.example.translation.constants.Regexes;
 import com.example.translation.constants.Tags;
-import com.example.translation.dtos.response.DecodeTextResponse;
+import com.example.translation.models.DecodeTextResponse;
 
 import java.util.ArrayDeque;
 import java.util.ArrayList;
