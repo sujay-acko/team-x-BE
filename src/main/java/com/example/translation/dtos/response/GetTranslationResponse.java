@@ -7,4 +7,7 @@ import lombok.Data;
 @Data
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
 public class GetTranslationResponse {
+    private String textData;
+    private String targetLang;
+    private Boolean fromThirdParty;
 }

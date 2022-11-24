@@ -1,6 +1,7 @@
 package com.example.translation.controllers;
 
 import com.example.translation.constants.Constants;
+import com.example.translation.dtos.request.GetTranslationRequest;
 import com.example.translation.dtos.response.GetTranslationResponse;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -18,8 +19,7 @@ public class TranslationController {
             consumes = MediaType.APPLICATION_JSON_VALUE,
             produces = MediaType.APPLICATION_JSON_VALUE
     )
-    public ResponseEntity<GetTranslationResponse> getOpportunity() {
-//        return ResponseEntity.ok(opportunityService.getOpportunity(params));
-        return null;
+    public ResponseEntity<GetTranslationResponse> getOpportunity(@RequestBody GetTranslationRequest requestDto) {
+        return ResponseEntity.ok(null);
     }
 }

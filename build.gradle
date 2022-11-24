@@ -19,6 +19,7 @@ repositories {
 }
 
 dependencies {
+	implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
 	implementation 'org.postgresql:postgresql:42.2.24'
 	implementation 'org.apache.commons:commons-lang3:3.0'
 	implementation 'org.antlr:stringtemplate:4.0.2'
