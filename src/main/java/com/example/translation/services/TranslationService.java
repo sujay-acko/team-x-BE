@@ -3,14 +3,15 @@ package com.example.translation.services;
 import com.example.translation.constants.Regexes;
 import com.example.translation.constants.Tags;
 import com.example.translation.dtos.request.GetTranslationRequest;
+import com.example.translation.dtos.request.UpdatetranslationRequest;
 import com.example.translation.dtos.response.HtmlTextEncodedResponse;
+import com.example.translation.dtos.response.UpdatetranslationResponse;
 import com.example.translation.models.DecodeTextResponse;
 import com.example.translation.dtos.response.GetTranslationResponse;
 import com.example.translation.enums.AdminStatus;
 import com.example.translation.models.TranslationDetails;
 import com.example.translation.models.Translations;
 import com.example.translation.pojo.TextWithHash;
-import com.example.translation.repositories.TranslationsDetailsRepository;
 import com.example.translation.repositories.TranslationsRepository;
 import com.example.translation.services.decode.DecodeTagService;
 import com.example.translation.services.decode.DecodeTagServiceImpl;
@@ -37,7 +38,6 @@ import java.util.stream.Stream;
 public class TranslationService {
 
     private final TranslationsRepository translationsRepository;
-    private final TranslationsDetailsRepository translationsDetailsRepository;
     private final Translate translate;
 
     public GetTranslationResponse getTranslation(GetTranslationRequest request) throws Exception {
@@ -190,9 +190,25 @@ public class TranslationService {
     }
 
     public List<TranslationDetails> getAllTranslations(Boolean pendingApproval){
-        if (!pendingApproval){
-            return translationsDetailsRepository.findByAdminStatus(AdminStatus.PENDING);
+        List<Translations> translationsList = pendingApproval ? translationsRepository.findByAdminStatus(AdminStatus.PENDING): translationsRepository.findAll();
+        List<TranslationDetails> translationDetailsList = new ArrayList<>();
+        for (int i = 0; i < translationsList.size(); i++) {
+            TranslationDetails translationDetails = TranslationDetails.builder()
+                    .textId()
+                    .originalText()
+                    .adminStatus()
+                    .translatedData()
         }
-        return translationsDetailsRepository.findAll();
+
+        return null;
+    }
+
+    public UpdatetranslationResponse updateTranslations(UpdatetranslationRequest updatetranslationRequest){
+
+        return null;
+    }
+    public UpdatetranslationResponse updateNewTranslations(UpdatetranslationRequest updatetranslationRequest){
+
+        return null;
     }
 }

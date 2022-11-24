@@ -2,7 +2,9 @@ package com.example.translation.controllers;
 
 import com.example.translation.constants.URLConstants;
 import com.example.translation.dtos.request.GetTranslationRequest;
+import com.example.translation.dtos.request.UpdatetranslationRequest;
 import com.example.translation.dtos.response.GetTranslationResponse;
+import com.example.translation.dtos.response.UpdatetranslationResponse;
 import com.example.translation.models.TranslationDetails;
 import com.example.translation.services.TranslationService;
 import lombok.RequiredArgsConstructor;
@@ -33,8 +35,30 @@ public class TranslationController {
             produces = MediaType.APPLICATION_JSON_VALUE
     )
     public ResponseEntity<List<TranslationDetails>> getAllTranslations(
-           @RequestParam(name = "pending_approval", defaultValue = "true", required = false) Boolean pendingApproval
+           @RequestParam(name = "pending_approval", defaultValue = "false", required = false) Boolean pendingApproval
     ) {
         return ResponseEntity.ok(translationService.getAllTranslations(pendingApproval));
+    }
+
+    @PostMapping(
+            path = URLConstants.Url.UPDATE_TRANSLATION,
+            consumes = MediaType.APPLICATION_JSON_VALUE,
+            produces = MediaType.APPLICATION_JSON_VALUE
+    )
+    public ResponseEntity<UpdatetranslationResponse> updateNewTranslations(
+            @RequestBody UpdatetranslationRequest updatetranslationRequest
+    ) {
+        return ResponseEntity.ok(translationService.updateNewTranslations(updatetranslationRequest));
+    }
+
+    @PatchMapping(
+            path = URLConstants.Url.GET_ALL_TRANSLATION,
+            consumes = MediaType.APPLICATION_JSON_VALUE,
+            produces = MediaType.APPLICATION_JSON_VALUE
+    )
+    public ResponseEntity<UpdatetranslationResponse> updateTranslations(
+            @RequestBody UpdatetranslationRequest updatetranslationRequest
+    ) {
+        return ResponseEntity.ok(translationService.updateTranslations(updatetranslationRequest));
     }
 }
