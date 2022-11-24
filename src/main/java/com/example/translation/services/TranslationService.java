@@ -42,7 +42,7 @@ public class TranslationService {
 
     public GetTranslationResponse getTranslation(GetTranslationRequest request) throws Exception {
 
-        log.info("Language Translation Started {} ###################", request.getHtmlTextData());
+        log.info("Language Translation Started {} ", request.getHtmlTextData());
         HtmlTextEncodedResponse htmlTextEncodedResponse = getFilteredSentence(request.getHtmlTextData());
 
         Map<String, Integer> sequenceMap = new HashMap<>();

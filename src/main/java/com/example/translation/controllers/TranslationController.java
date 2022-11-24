@@ -28,7 +28,7 @@ public class TranslationController {
     }
 
     @GetMapping(
-            path = Constants.Url.GET_ALL_TRANSLATION,
+            path = URLConstants.Url.GET_ALL_TRANSLATION,
             consumes = MediaType.APPLICATION_JSON_VALUE,
             produces = MediaType.APPLICATION_JSON_VALUE
     )
