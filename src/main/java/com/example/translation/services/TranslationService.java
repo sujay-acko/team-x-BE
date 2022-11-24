@@ -25,6 +25,7 @@ import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 @Component
 @RequiredArgsConstructor
@@ -39,24 +40,24 @@ public class TranslationService {
         HtmlTextEncodedResponse htmlTextEncodedResponse = getFilteredSentence(request.getHtmlTextData());
         List<String> translationTextList = new ArrayList<>();
         List<List<String>> paramValuesList = new ArrayList<>();
+
+        Map<String, Integer> sequenceMap = new HashMap<>();
+        Map<String,List<String>> paramValueMap = new HashMap<>();
+        int index = 0;
         for (DecodeTextResponse decodeTextResponse: htmlTextEncodedResponse.getDecodeTextResponseList()) {
             translationTextList.add(decodeTextResponse.getText());
             paramValuesList.add(decodeTextResponse.getParamValues());
+            sequenceMap.put(CommonUtils.getMd5(decodeTextResponse.getText()), index++);
+            paramValueMap.put(CommonUtils.getMd5(decodeTextResponse.getText()), decodeTextResponse.getParamValues());
         }
+//
+//        for (int i=0; i<translationTextList.size(); i++){
+//            paramValueMap.put(CommonUtils.getMd5(translationTextList.get(i)),paramValuesList.get(i));
+//        }
 
-        Map<String,List<String>> paramValueMap = new HashMap<>();
-        for (int i=0; i<translationTextList.size(); i++){
-            paramValueMap.put(CommonUtils.getMd5(translationTextList.get(i)),paramValuesList.get(i));
-        }
+        // -------------------------------------------------------
         Map<String, String> translationMap = translationTextList.stream()
                 .collect(Collectors.toMap(CommonUtils::getMd5, s -> s));
-
-        List<TextWithHash> translationRevObj = translationTextList.stream()
-                .map(t -> TextWithHash.builder()
-                        .text(t)
-                        .hash(CommonUtils.getMd5(t))
-                        .build())
-                .collect(Collectors.toList());
 
         List<String> translationHex = new ArrayList<>(translationMap.keySet());
         List<Translations> translatedSentence =
@@ -70,29 +71,29 @@ public class TranslationService {
                 .map(t -> TextWithHash.builder().text(translationMap.get(t)).hash(t).build())
                 .collect(Collectors.toList());
 
-        if (unmatchedString.isEmpty()) {
+        List<Translations> translationsList = new ArrayList<>();
+        if (!unmatchedString.isEmpty()) {
             // sentence found in db
-           return null;
+            List<TextWithHash> translatedList = createTranslation(unmatchedString, request.getTargetLang());
+
+            translationsList = translatedList.stream()
+                    .map(t -> Translations.builder()
+                            .textId(t.getHash())
+                            .languageCode(request.getTargetLang())
+                            .translation(t.getText())
+                            .build()
+                    )
+                    .collect(Collectors.toList());
+            translationsRepository.saveAll(translationsList);
         }
-
-        List<TextWithHash> translatedList = createTranslation(unmatchedString, request.getTargetLang());
-
-        List<Translations> translationsList = translatedList.stream()
-                .map(t -> Translations.builder()
-                        .textId(t.getHash())
-                        .languageCode(request.getTargetLang())
-                        .translation(t.getText())
-                        .build()
-                )
+        List<Translations> finalTranslatedString = Stream.concat(translationsList.stream(), translatedSentence.stream())
                 .collect(Collectors.toList());
-        translationsRepository.saveAll(translationsList);
 
-        //TODO:  need to fetch this translated list from db.
         List<String> translatedEncodedString = new ArrayList<>();
         List<List<String>> paramList = new ArrayList<>();
-        translatedList.forEach(t -> {
-            translatedEncodedString.add(t.getText());
-            paramList.add(paramValueMap.get(t.getHash()));
+        finalTranslatedString.forEach(t -> {
+            translatedEncodedString.add(sequenceMap.get(t.getTextId()), t.getTranslation());
+            paramList.add(sequenceMap.get(t.getTextId()), paramValueMap.get(t.getTextId()));
         });
 
         List<String> translatedString = getSubstitutedTranslationList(translatedEncodedString, paramList);
