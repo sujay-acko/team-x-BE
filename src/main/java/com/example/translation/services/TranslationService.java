@@ -89,8 +89,12 @@ public class TranslationService {
         List<Translations> finalTranslatedString = Stream.concat(translationsList.stream(), translatedSentence.stream())
                 .collect(Collectors.toList());
 
-        List<String> translatedEncodedString = new ArrayList<>();
-        List<List<String>> paramList = new ArrayList<>();
+        List<String> translatedEncodedString = new ArrayList<>(finalTranslatedString.size());
+        List<List<String>> paramList = new ArrayList<>(finalTranslatedString.size());
+        for(int i=0 ;i< finalTranslatedString.size(); i++) {
+            translatedEncodedString.add(null);
+            paramList.add(null);
+        }
         finalTranslatedString.forEach(t -> {
             translatedEncodedString.add(sequenceMap.get(t.getTextId()), t.getTranslation());
             paramList.add(sequenceMap.get(t.getTextId()), paramValueMap.get(t.getTextId()));
