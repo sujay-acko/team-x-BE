@@ -40,19 +40,8 @@ public class TranslationController {
         return ResponseEntity.ok(translationService.getAllTranslations(pendingApproval));
     }
 
-    @PostMapping(
-            path = URLConstants.Url.UPDATE_TRANSLATION,
-            consumes = MediaType.APPLICATION_JSON_VALUE,
-            produces = MediaType.APPLICATION_JSON_VALUE
-    )
-    public ResponseEntity<UpdatetranslationResponse> updateNewTranslations(
-            @RequestBody UpdatetranslationRequest updatetranslationRequest
-    ) {
-        return ResponseEntity.ok(translationService.updateNewTranslations(updatetranslationRequest));
-    }
-
     @PatchMapping(
-            path = URLConstants.Url.GET_ALL_TRANSLATION,
+            path = URLConstants.Url.UPDATE_TRANSLATION,
             consumes = MediaType.APPLICATION_JSON_VALUE,
             produces = MediaType.APPLICATION_JSON_VALUE
     )
