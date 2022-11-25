@@ -3,9 +3,14 @@ package com.example.translation.services;
 import com.example.translation.constants.Regexes;
 import com.example.translation.constants.Tags;
 import com.example.translation.dtos.request.GetTranslationRequest;
+import com.example.translation.dtos.request.UpdatetranslationRequest;
 import com.example.translation.dtos.response.HtmlTextEncodedResponse;
+import com.example.translation.dtos.response.UpdatetranslationResponse;
 import com.example.translation.models.DecodeTextResponse;
 import com.example.translation.dtos.response.GetTranslationResponse;
+import com.example.translation.enums.AdminStatus;
+import com.example.translation.models.TranslatedData;
+import com.example.translation.models.TranslationDetails;
 import com.example.translation.models.Translations;
 import com.example.translation.pojo.TextWithHash;
 import com.example.translation.repositories.TranslationsRepository;
@@ -38,24 +43,29 @@ public class TranslationService {
 
     public GetTranslationResponse getTranslation(GetTranslationRequest request) throws Exception {
 
-        log.info("Language Translation Started {} ###################", request.getHtmlTextData());
+        log.info("Language Translation Started {} ", request.getHtmlTextData());
         HtmlTextEncodedResponse htmlTextEncodedResponse = getFilteredSentence(request.getHtmlTextData());
 
         Map<String, Integer> sequenceMap = new HashMap<>();
-        Map<String,List<String>> paramValueMap = new HashMap<>();
+        Map<String, List<String>> paramValueMap = new HashMap<>();
         Map<String, String> translationMap = new HashMap<>();
+        List<String> originalText = new ArrayList<>();
+        List<List<String>> originalParamList = new ArrayList<>();
         int index = 0;
-        for (DecodeTextResponse decodeTextResponse: htmlTextEncodedResponse.getDecodeTextResponseList()) {
+        for (DecodeTextResponse decodeTextResponse : htmlTextEncodedResponse.getDecodeTextResponseList()) {
             String hexCode = CommonUtils.getMd5(decodeTextResponse.getText());
             sequenceMap.put(hexCode, index++);
             translationMap.put(hexCode, decodeTextResponse.getText());
             paramValueMap.put(hexCode, decodeTextResponse.getParamValues());
+
+            originalText.add(decodeTextResponse.getText());
+            originalParamList.add(decodeTextResponse.getParamValues());
         }
 
         List<String> translationHex = new ArrayList<>(translationMap.keySet());
 
         if (translationHex.isEmpty()) {
-            log.info("no translation");
+            // no translation
             return GetTranslationResponse.builder()
                     .textData(request.getHtmlTextData())
                     .targetLang(request.getTargetLang())
@@ -65,47 +75,58 @@ public class TranslationService {
         System.out.println(translationHex);
         System.out.println(request);
 
-        List<Translations> translatedSentence =
-                translationsRepository.findByTextIdInAndLanguageCode(translationHex, request.getTargetLang());
 
-        List<String> translationAvailableHex = translatedSentence.stream().map(Translations::getTextId).collect(Collectors.toList());
+        String[] translatedEncodedString = new String[0];
+        ArrayList[] paramList = new ArrayList[0];
 
-        // unmatched strings
-        List<TextWithHash> unmatchedString = translationHex.stream()
-                .filter(t -> !translationAvailableHex.contains(t))
-                .map(t -> TextWithHash.builder().text(translationMap.get(t)).hash(t).build())
-                .collect(Collectors.toList());
+        if (!request.getTargetLang().equalsIgnoreCase("en")) {
 
-        List<Translations> translationsList = new ArrayList<>();
-        if (!unmatchedString.isEmpty()) {
-            // sentence found in db
-            List<TextWithHash> translatedList = createTranslation(unmatchedString, request.getTargetLang());
+            List<Translations> translatedSentence =
+                    translationsRepository.findByTextIdInAndLanguageCode(translationHex, request.getTargetLang());
 
-            translationsList = translatedList.stream()
-                    .map(t -> Translations.builder()
-                            .textId(t.getHash())
-                            .languageCode(request.getTargetLang())
-                            .translation(t.getText())
-                            .originalText(translationMap.get(t.getHash()))
-                            .build()
-                    )
+            List<String> translationAvailableHex = translatedSentence.stream().map(Translations::getTextId).collect(Collectors.toList());
+
+            // unmatched strings
+            List<TextWithHash> unmatchedString = translationHex.stream()
+                    .filter(t -> !translationAvailableHex.contains(t))
+                    .map(t -> TextWithHash.builder().text(translationMap.get(t)).hash(t).build())
                     .collect(Collectors.toList());
-            translationsRepository.saveAll(translationsList);
+
+            List<Translations> translationsList = new ArrayList<>();
+            if (!unmatchedString.isEmpty()) {
+                // sentence found in db
+                List<TextWithHash> translatedList = createTranslation(unmatchedString, request.getTargetLang());
+
+                translationsList = translatedList.stream()
+                        .map(t -> Translations.builder()
+                                .textId(t.getHash())
+                                .languageCode(request.getTargetLang())
+                                .originalText(translationMap.get(t.getHash()))
+                                .translation(t.getText())
+                                .adminStatus(AdminStatus.PENDING.getValue())
+                                .build()
+                        )
+                        .collect(Collectors.toList());
+                translationsRepository.saveAll(translationsList);
+            }
+            List<Translations> finalTranslatedString = Stream.concat(translationsList.stream(), translatedSentence.stream())
+                    .collect(Collectors.toList());
+
+            translatedEncodedString = new String[finalTranslatedString.size()];
+            paramList = new ArrayList[finalTranslatedString.size()];
+            String[] finalTranslatedEncodedString = translatedEncodedString;
+            ArrayList[] finalParamList = paramList;
+            finalTranslatedString.forEach(t -> {
+                finalTranslatedEncodedString[sequenceMap.get(t.getTextId())] = t.getTranslation();
+                finalParamList[sequenceMap.get(t.getTextId())] = (ArrayList) paramValueMap.get(t.getTextId());
+            });
+            originalText = Arrays.asList(translatedEncodedString);
+            originalParamList = Arrays.asList(paramList);
         }
-        List<Translations> finalTranslatedString = Stream.concat(translationsList.stream(), translatedSentence.stream())
-                .collect(Collectors.toList());
-
-        String[] translatedEncodedString = new String[finalTranslatedString.size()];
-        List<String>[] paramList = new ArrayList[finalTranslatedString.size()];
-        finalTranslatedString.forEach(t -> {
-            translatedEncodedString[sequenceMap.get(t.getTextId())] = t.getTranslation();
-            paramList[sequenceMap.get(t.getTextId())] =  paramValueMap.get(t.getTextId());
-        });
-
-        List<String> translatedString = getSubstitutedTranslationList(Arrays.asList(translatedEncodedString), Arrays.asList(paramList));
+        List<String> translatedString = getSubstitutedTranslationList(originalText, originalParamList);
 
         String encodedHtmlResponse = htmlTextEncodedResponse.getEncodedHtmlResponse();
-        String finalHtmlResponsePage = getFinalHtmlResponsePage(translatedString,encodedHtmlResponse);
+        String finalHtmlResponsePage = getFinalHtmlResponsePage(translatedString, encodedHtmlResponse);
         GetTranslationResponse getTranslationResponse = GetTranslationResponse.builder()
                 .textData(finalHtmlResponsePage)
                 .targetLang(request.getTargetLang())
@@ -196,5 +217,70 @@ public class TranslationService {
             );
         }
         return result;
+    }
+
+    public List<TranslationDetails> getAllTranslations(Boolean pendingApproval){
+        List<Translations> translationsList = pendingApproval ? translationsRepository.findByAdminStatus(AdminStatus.pending): translationsRepository.findAll();
+
+        // When no date available
+        if (translationsList.isEmpty())
+            return new ArrayList<>();
+
+        Map<String, List<TranslatedData>> translationListMap = new HashMap<>();
+        Map<String, String> originalTextMaP = new HashMap<>();
+
+        for (int i = 0; i < translationsList.size(); i++) {
+            String textId = translationsList.get(i).getTextId();
+            TranslatedData translatedData = TranslatedData.builder()
+                    .languageCode(translationsList.get(i).getLanguageCode())
+                    .text(translationsList.get(i).getTranslation())
+                    .adminStatus(translationsList.get(i).getAdminStatus())
+                    .build();
+
+            List<TranslatedData> translatedDataList = translationListMap.getOrDefault(textId, new ArrayList<>());
+            translatedDataList.add(translatedData);
+            translationListMap.put(textId, translatedDataList);
+            originalTextMaP.put(textId, translationsList.get(i).getOriginalText());
+        }
+        List<TranslationDetails>  translationDetailsList = new ArrayList<>();
+        for (Map.Entry<String,String> entry : originalTextMaP.entrySet())
+            translationDetailsList.add(TranslationDetails.builder()
+                    .translatedData(translationListMap.get(entry.getKey()))
+                    .originalText(entry.getValue())
+                    .textId(entry.getKey()).build()
+                    );
+
+        return translationDetailsList;
+    }
+
+    public UpdatetranslationResponse updateTranslations(UpdatetranslationRequest updatetranslationRequest){
+        List<Translations> translationsList = new ArrayList<>();
+        for (TranslatedData translatedData: updatetranslationRequest.getTranslatedData()) {
+            List<Translations> translationList = translationsRepository.findByTextIdInAndLanguageCode(List.of(updatetranslationRequest.getTextId()), translatedData.getLanguageCode());
+            Translations translations = null;
+            if(!translationList.isEmpty()){
+                translations = translationList.get(0);
+                translations.setTranslation(translatedData.getText());
+                translations.setAdminStatus(translatedData.getAdminStatus());
+                translations.setOriginalText(updatetranslationRequest.getOriginalText());
+
+                translationsList.add(translations);
+                continue;
+            }
+            translations = Translations.builder()
+                    .textId(updatetranslationRequest.getTextId())
+                    .languageCode(translatedData.getLanguageCode())
+                    .translation(translatedData.getText())
+                    .adminStatus(translatedData.getAdminStatus())
+                    .originalText(updatetranslationRequest.getOriginalText())
+                    .build();
+            translationsList.add(translations);
+        }
+        translationsRepository.saveAll(translationsList);
+
+        return UpdatetranslationResponse.builder()
+                .success(true)
+                .message("Translation Saved")
+                .build();
     }
 }

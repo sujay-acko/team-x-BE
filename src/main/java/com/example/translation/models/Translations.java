@@ -1,5 +1,6 @@
 package com.example.translation.models;
 
+import com.example.translation.enums.AdminStatus;
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;
 import lombok.AllArgsConstructor;
@@ -9,11 +10,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.hibernate.annotations.GenericGenerator;
 
-import javax.persistence.Column;
-import javax.persistence.Entity;
-import javax.persistence.GeneratedValue;
-import javax.persistence.Id;
-import javax.persistence.Table;
+import javax.persistence.*;
 
 @Entity
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
@@ -37,6 +34,10 @@ public class Translations {
     @Column(name = "text_id", updatable = false, nullable = false)
     private String textId;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "admin_status", updatable = false, nullable = false)
+    private AdminStatus adminStatus;
+
     @Column(name = "language_code", updatable = false, nullable = false)
     private String languageCode;
 
@@ -45,4 +46,7 @@ public class Translations {
 
     @Column(name = "original_text", nullable = false)
     private String originalText;
+
+    @Column(name = "admin_status", nullable = false)
+    private String adminStatus;
 }
