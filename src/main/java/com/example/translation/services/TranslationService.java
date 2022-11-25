@@ -9,10 +9,12 @@ import com.example.translation.dtos.response.UpdatetranslationResponse;
 import com.example.translation.models.DecodeTextResponse;
 import com.example.translation.dtos.response.GetTranslationResponse;
 import com.example.translation.enums.AdminStatus;
+import com.example.translation.models.Language;
 import com.example.translation.models.TranslatedData;
 import com.example.translation.models.TranslationDetails;
 import com.example.translation.models.Translations;
 import com.example.translation.pojo.TextWithHash;
+import com.example.translation.repositories.LanguageRepository;
 import com.example.translation.repositories.TranslationsRepository;
 import com.example.translation.services.decode.DecodeTagService;
 import com.example.translation.services.decode.DecodeTagServiceImpl;
@@ -28,6 +30,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -39,12 +42,16 @@ import java.util.stream.Stream;
 public class TranslationService {
 
     private final TranslationsRepository translationsRepository;
+    private final LanguageRepository languageRepository;
     private final Translate translate;
 
     public GetTranslationResponse getTranslation(GetTranslationRequest request) throws Exception {
 
         log.info("Language Translation Started {} ", request.getHtmlTextData());
         HtmlTextEncodedResponse htmlTextEncodedResponse = getFilteredSentence(request.getHtmlTextData());
+
+        //checking if language is enabled
+        request.setTargetLang(checkIfLanguageExist(request.getTargetLang()));
 
         Map<String, Integer> sequenceMap = new HashMap<>();
         Map<String, List<String>> paramValueMap = new HashMap<>();
@@ -136,6 +143,21 @@ public class TranslationService {
         log.info("Language Translation Done {} ", getTranslationResponse.getTextData());
         return getTranslationResponse;
     }
+
+    public String checkIfLanguageExist(String targetLang) {
+        Optional<Language> optionalLanguage = languageRepository.findById(targetLang);
+        if (optionalLanguage.isEmpty()) {
+            log.warn("--NO TRANSLATION--");
+            return "en";
+        }
+        Language language = optionalLanguage.get();
+        if (language.getEnabled()) {
+            return language.getLanguageCode();
+        }
+        log.warn("--NO TRANSLATION--");
+        return "en";
+    }
+
     public HtmlTextEncodedResponse getFilteredSentence(String text) throws Exception {
 
         Matcher matcher = Pattern.compile(Regexes.HTML_PARSER_REGEX, Pattern.CASE_INSENSITIVE).matcher(text);
