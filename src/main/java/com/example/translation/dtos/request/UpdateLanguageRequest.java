@@ -7,7 +7,7 @@ import lombok.Data;
 @Data
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
 public class UpdateLanguageRequest {
-    private String langCode;
+    private String languageCode;
     private String languageName;
     private Boolean enabled;
 }

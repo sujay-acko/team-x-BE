@@ -22,7 +22,7 @@ public class LanguageService {
     }
 
     public UpdateLanguageResponse updateLanguage(UpdateLanguageRequest requestDto) {
-        Optional<Language> languageOptional = languageRepository.findById(requestDto.getLangCode());
+        Optional<Language> languageOptional = languageRepository.findById(requestDto.getLanguageCode());
         if (languageOptional.isEmpty()) {
             throw new RuntimeException();
         }
