@@ -240,20 +240,24 @@ public class TranslationService {
     public UpdatetranslationResponse updateTranslations(UpdatetranslationRequest updatetranslationRequest){
         List<Translations> translationsList = new ArrayList<>();
         for (TranslatedData translatedData: updatetranslationRequest.getTranslatedData()) {
-            Translations translations = translationsRepository.findByTextIdInAndLanguageCode(List.of(updatetranslationRequest.getTextId()), translatedData.getLanguageCode()).get(0);
-            if (translations.equals(null)){
-                translations = Translations.builder()
-                        .textId(updatetranslationRequest.getTextId())
-                        .languageCode(translatedData.getLanguageCode())
-                        .translation(translatedData.getText())
-                        .adminStatus(translatedData.getAdminStatus())
-                        .originalText(updatetranslationRequest.getOriginalText())
-                        .build();
+            List<Translations> translationList = translationsRepository.findByTextIdInAndLanguageCode(List.of(updatetranslationRequest.getTextId()), translatedData.getLanguageCode());
+            Translations translations = null;
+            if(!translationList.isEmpty()){
+                translations = translationList.get(0);
+                translations.setTranslation(translatedData.getText());
+                translations.setAdminStatus(translatedData.getAdminStatus());
+                translations.setOriginalText(updatetranslationRequest.getOriginalText());
+
                 translationsList.add(translations);
+                continue;
             }
-            translations.setTranslation(translatedData.getText());
-            translations.setAdminStatus(translatedData.getAdminStatus());
-            translations.setOriginalText(updatetranslationRequest.getOriginalText());
+            translations = Translations.builder()
+                    .textId(updatetranslationRequest.getTextId())
+                    .languageCode(translatedData.getLanguageCode())
+                    .translation(translatedData.getText())
+                    .adminStatus(translatedData.getAdminStatus())
+                    .originalText(updatetranslationRequest.getOriginalText())
+                    .build();
             translationsList.add(translations);
         }
         translationsRepository.saveAll(translationsList);
