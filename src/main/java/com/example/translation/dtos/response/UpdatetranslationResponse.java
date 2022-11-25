@@ -8,6 +8,7 @@ import lombok.Data;
 @Data
 @Builder
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
-public class UpdatetranslationResponse extends UpdateLanguageResponse{
-
+public class UpdatetranslationResponse{
+    private Boolean success;
+    private String message;
 }

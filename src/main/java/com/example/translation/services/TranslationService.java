@@ -9,6 +9,7 @@ import com.example.translation.dtos.response.UpdatetranslationResponse;
 import com.example.translation.models.DecodeTextResponse;
 import com.example.translation.dtos.response.GetTranslationResponse;
 import com.example.translation.enums.AdminStatus;
+import com.example.translation.models.TranslatedData;
 import com.example.translation.models.TranslationDetails;
 import com.example.translation.models.Translations;
 import com.example.translation.pojo.TextWithHash;
@@ -203,25 +204,63 @@ public class TranslationService {
     }
 
     public List<TranslationDetails> getAllTranslations(Boolean pendingApproval){
-        List<Translations> translationsList = pendingApproval ? translationsRepository.findByAdminStatus(AdminStatus.PENDING): translationsRepository.findAll();
-        List<TranslationDetails> translationDetailsList = new ArrayList<>();
-        for (int i = 0; i < translationsList.size(); i++) {
-            TranslationDetails translationDetails = TranslationDetails.builder()
-                    .textId()
-                    .originalText()
-                    .adminStatus()
-                    .translatedData()
-        }
+        List<Translations> translationsList = pendingApproval ? translationsRepository.findByAdminStatus(AdminStatus.pending): translationsRepository.findAll();
 
-        return null;
+        // When no date available
+        if (translationsList.isEmpty())
+            return new ArrayList<>();
+
+        Map<String, List<TranslatedData>> translationListMap = new HashMap<>();
+        Map<String, String> originalTextMaP = new HashMap<>();
+
+        for (int i = 0; i < translationsList.size(); i++) {
+            String textId = translationsList.get(i).getTextId();
+            TranslatedData translatedData = TranslatedData.builder()
+                    .languageCode(translationsList.get(i).getLanguageCode())
+                    .text(translationsList.get(i).getTranslation())
+                    .adminStatus(translationsList.get(i).getAdminStatus())
+                    .build();
+
+            List<TranslatedData> translatedDataList = translationListMap.getOrDefault(textId, new ArrayList<>());
+            translatedDataList.add(translatedData);
+            translationListMap.put(textId, translatedDataList);
+            originalTextMaP.put(textId, translationsList.get(i).getOriginalText());
+        }
+        List<TranslationDetails>  translationDetailsList = new ArrayList<>();
+        for (Map.Entry<String,String> entry : originalTextMaP.entrySet())
+            translationDetailsList.add(TranslationDetails.builder()
+                    .translatedData(translationListMap.get(entry.getKey()))
+                    .originalText(entry.getValue())
+                    .textId(entry.getKey()).build()
+                    );
+
+        return translationDetailsList;
     }
 
     public UpdatetranslationResponse updateTranslations(UpdatetranslationRequest updatetranslationRequest){
+        List<Translations> translationsList = new ArrayList<>();
+        for (TranslatedData translatedData: updatetranslationRequest.getTranslatedData()) {
+            Translations translations = translationsRepository.findByTextIdInAndLanguageCode(List.of(updatetranslationRequest.getTextId()), translatedData.getLanguageCode()).get(0);
+            if (translations.equals(null)){
+                translations = Translations.builder()
+                        .textId(updatetranslationRequest.getTextId())
+                        .languageCode(translatedData.getLanguageCode())
+                        .translation(translatedData.getText())
+                        .adminStatus(translatedData.getAdminStatus())
+                        .originalText(updatetranslationRequest.getOriginalText())
+                        .build();
+                translationsList.add(translations);
+            }
+            translations.setTranslation(translatedData.getText());
+            translations.setAdminStatus(translatedData.getAdminStatus());
+            translations.setOriginalText(updatetranslationRequest.getOriginalText());
+            translationsList.add(translations);
+        }
+        translationsRepository.saveAll(translationsList);
 
-        return null;
-    }
-    public UpdatetranslationResponse updateNewTranslations(UpdatetranslationRequest updatetranslationRequest){
-
-        return null;
+        return UpdatetranslationResponse.builder()
+                .success(true)
+                .message("Translation Saved")
+                .build();
     }
 }
