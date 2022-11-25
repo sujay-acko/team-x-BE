@@ -103,7 +103,7 @@ public class TranslationService {
                                 .languageCode(request.getTargetLang())
                                 .originalText(translationMap.get(t.getHash()))
                                 .translation(t.getText())
-                                .adminStatus(AdminStatus.PENDING.getValue())
+                                .adminStatus(AdminStatus.pending)
                                 .build()
                         )
                         .collect(Collectors.toList());
